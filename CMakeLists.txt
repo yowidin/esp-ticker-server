@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(${CMAKE_PROJECT_NAME}
    src/main.cc
+   src/database/database.cc
 )
 
 target_include_directories(
@@ -24,5 +25,4 @@ set_target_properties(
 find_package(Threads REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} Threads::Threads)
 
-# TODO
-# Attach a database: http://otl.sourceforge.net/
+# TODO Add database https://github.com/SOCI/soci

@@ -1,6 +1,7 @@
-#include <iostream>
-#include <asio.hpp>
+#include "database/database.hh"
 
 int main() {
+   ticker::database::foo();
+
    return 0;
 }
