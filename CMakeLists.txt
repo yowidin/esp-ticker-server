@@ -25,4 +25,19 @@ set_target_properties(
 find_package(Threads REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} Threads::Threads)
 
-# TODO Add database https://github.com/SOCI/soci
+include(ExternalProject)
+ExternalProject_Add(
+   SOCI
+   GIT_REPOSITORY https://github.com/SOCI/soci
+   GIT_TAG c5e37d2731b8af732e6efb22b10e9bfc035ded49
+   INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/soci_install"
+   CMAKE_ARGS 
+      -DWITH_SQLITE3=ON
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/soci_install
+      -DSOCI_TESTS=OFF
+)
+add_dependencies(${CMAKE_PROJECT_NAME} SOCI)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR}/soci_install/cmake)
+include(SOCI)
+
+target_link_libraries(${CMAKE_PROJECT_NAME} SOCI::soci_core_static SOCI::soci_mysql_static)
