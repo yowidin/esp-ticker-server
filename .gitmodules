@@ -1,6 +1,3 @@
 [submodule "asio"]
 	path = third_party/asio
 	url = https://github.com/chriskohlhoff/asio/
-[submodule "soci"]
-	path = third_party/soci
-	url = https://github.com/SOCI/soci
