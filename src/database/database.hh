@@ -16,7 +16,7 @@ namespace ticker {
 class database {
 public:
    //! Target database version
-   static const int TARGET_DB_VERSION = 0;
+   static const int TARGET_DB_VERSION = 1;
 
 public:
    void init();

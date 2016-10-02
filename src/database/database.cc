@@ -11,6 +11,7 @@
 #include <soci/mysql/soci-mysql.h>
 #include <sstream>
 #include <iostream>
+#include <ctime>
 #include <chrono>
 
 using ticker::database;
@@ -25,6 +26,7 @@ void database::init() {
       soci::session sql(soci::mysql, get_connection_string(false));
       sql.once << "USE " << db_settings::database;
 
+      sql << "SELECT version FROM esp_ticker.metadata", soci::into(db_version);
    } catch (const soci::mysql_soci_error &e) {
       std::cout << "SOCI Exception: " << e.what() << std::endl;
       db_version = -1;
@@ -45,10 +47,13 @@ void database::add_sensor_entry(std::uint16_t co2, std::uint16_t brightness, dou
    namespace sc = std::chrono;
    auto timestamp = sc::duration_cast<sc::seconds>(sc::system_clock::now().time_since_epoch()).count();
 
+   std::time_t time(static_cast<std::time_t>(timestamp));
+   auto tm = std::localtime(&time);
+
    soci::session sql(soci::mysql, get_connection_string(true));
-   sql << "INSERT INTO readings(reading_time, co2, brightness, temperature, humidity, led_brightness)"
-       << " VALUES(:rt, :co, :br, :t, :h, :lb)",
-       soci::use(timestamp), soci::use(co2), soci::use(brightness), soci::use(temp), soci::use(humidity), soci::use(led_brightness);
+   sql << "INSERT INTO readings(reading_time, reading_stamp, co2, brightness, temperature, humidity, led_brightness)"
+       << " VALUES(:rt, :rs, :co, :br, :t, :h, :lb)",
+       soci::use(timestamp), soci::use(*tm), soci::use(co2), soci::use(brightness), soci::use(temp), soci::use(humidity), soci::use(led_brightness);
 }
 
 /**
@@ -84,7 +89,11 @@ void database::update_to_version(int current_version, int target_version) {
          sql.once << "INSERT INTO metadata(version) VALUES(:version)", soci::use(0);
          sql.once << "CREATE TABLE readings(reading_time INT UNSIGNED, co2 INT UNSIGNED, brightness INT UNSIGNED, temperature FLOAT, humidity FLOAT, led_brightness FLOAT)";
       }
-      case 0:
+      case 0: {
+         soci::session sql(soci::mysql, get_connection_string(true));
+         sql.once << "ALTER TABLE readings ADD COLUMN reading_stamp TIMESTAMP AFTER reading_time";
+         sql.once << "UPDATE metadata SET version=1";
+      }
       case 1:
          break;
    }
