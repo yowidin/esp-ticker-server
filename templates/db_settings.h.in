@@ -1,0 +1,21 @@
+#ifndef TICKER_DB_SETTINGS_HH_
+#define TICKER_DB_SETTINGS_HH_
+
+namespace ticker {
+
+namespace db_settings {
+
+//! Database name
+static const char * const database = "@ETS_DB_NAME@";
+
+//! DB User name
+static const char * const user_name = "@ETS_USERNAME@";
+
+//! DB Password
+static const char * const password = "@ETS_PASSWORD@";
+
+} // namespace db_settings
+
+} // namespace ticker
+
+#endif

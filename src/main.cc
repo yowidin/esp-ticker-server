@@ -1,4 +1,4 @@
-#include "asio.hpp"
+#include <asio.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -6,6 +6,10 @@
 #include <chrono>
 #include <utility>
 #include <cstdint>
+
+#include "database/database.hh"
+
+ticker::database db_access;
 
 using asio::ip::tcp;
 
@@ -43,12 +47,13 @@ private:
                float temperature(read_float()), humidity(read_float()), led_brightness(read_float());
                auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-               std::cout << "[" << timestamp << "] Full string: \"" <<  data_ << "\"\n"; 
+               std::cout << "[" << timestamp << "] Full string: \"" <<  data_ << "\"\n";
                std::cout << "CO2: " << co2 << "\n";
                std::cout << "Brightness: " << brightness << "\n";
                std::cout << "Temperature: " << temperature << "\n";
                std::cout << "Humidity: " << humidity << "\n";
                std::cout << "LED Brightness: " << led_brightness << "\n";
+               db_access.add_sensor_entry(co2, brightness, temperature, humidity, led_brightness);
             }
          });
    }
@@ -69,11 +74,11 @@ public:
 private:
    void do_accept() {
       acceptor_.async_accept(socket_, [this](std::error_code ec) {
-      if (!ec) {
-         std::make_shared<session>(std::move(socket_))->start();
-      }
+         if (!ec) {
+            std::make_shared<session>(std::move(socket_))->start();
+         }
 
-      do_accept();
+         do_accept();
       });
    }
 
@@ -87,6 +92,8 @@ int main(int argc, char *argv[]) {
          std::cerr << "Usage: async_tcp_echo_server <port>\n";
          return 1;
       }
+
+      db_access.init();
 
       asio::io_service io_service;
 
