@@ -1,0 +1,10 @@
+[Unit]
+Description=ESP Ticker server service
+After=network.target multi-user.target
+
+[Service]
+ExecStart=@CMAKE_CURRENT_BINARY_DIR@/@CMAKE_PROJECT_NAME@ 20123
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

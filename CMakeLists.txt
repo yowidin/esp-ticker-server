@@ -21,6 +21,7 @@ set(ETS_PASSWORD "password" CACHE STRING "Database password")
 set(ETS_SOCI_PATH "" CACHE PATH "Path to the SOCI.cmake file")
 configure_file("${CMAKE_CURRENT_LIST_DIR}/templates/db_settings.h.in" "${CMAKE_CURRENT_BINARY_DIR}/db_settings.h")
 configure_file("${CMAKE_CURRENT_LIST_DIR}/templates/index.php.in" "${CMAKE_CURRENT_BINARY_DIR}/index.php" @ONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/templates/esp-ticker-server.service.in" "${CMAKE_CURRENT_BINARY_DIR}/esp-ticker-server.service" @ONLY)
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASIO_STANDALONE)
 set_target_properties(
