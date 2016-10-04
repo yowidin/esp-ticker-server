@@ -46,7 +46,7 @@ if ($conn->connect_error) {
          } else {
             $sql = $sql . $reading;
          }
-			$sql = $sql . " FROM readings WHERE reading_stamp > DATE_SUB(NOW(), INTERVAL 1 " . $interval . ")";
+         $sql = $sql . " FROM readings WHERE reading_stamp > DATE_SUB(NOW(), INTERVAL 1 " . $interval . ")";
          if ($skip_groupby == false) {
             $sql = $sql . "GROUP BY " . $group_by . "(reading_stamp)";
          }
@@ -78,25 +78,25 @@ if ($conn->connect_error) {
          echo "</script>\n";
       }
 
-		add_graph("co2", "CO2", "DAY", "HOUR", "co2_chart_day", true);
-		add_graph("co2", "CO2", "MONTH", "DATE", "co2_chart_month", false);
-		add_graph("co2", "CO2", "YEAR", "MONTH", "co2_chart_year", false);
+      add_graph("co2", "CO2", "DAY", "HOUR", "co2_chart_day", true);
+      add_graph("co2", "CO2", "MONTH", "DATE", "co2_chart_month", false);
+      add_graph("co2", "CO2", "YEAR", "MONTH", "co2_chart_year", false);
 
-		add_graph("temperature", "Temperature", "DAY", "HOUR", "temp_chart_day", true);
-		add_graph("temperature", "Temperature", "MONTH", "DATE", "temp_chart_month", false);
-		add_graph("temperature", "Temperature", "YEAR", "MONTH", "temp_chart_year", false);
+      add_graph("temperature", "Temperature", "DAY", "HOUR", "temp_chart_day", true);
+      add_graph("temperature", "Temperature", "MONTH", "DATE", "temp_chart_month", false);
+      add_graph("temperature", "Temperature", "YEAR", "MONTH", "temp_chart_year", false);
 
-		add_graph("humidity", "Humidity", "DAY", "HOUR", "hum_chart_day", true);
-		add_graph("humidity", "Humidity", "MONTH", "DATE", "hum_chart_month", false);
-		add_graph("humidity", "Humidity", "YEAR", "MONTH", "hum_chart_year", false);
+      add_graph("humidity", "Humidity", "DAY", "HOUR", "hum_chart_day", true);
+      add_graph("humidity", "Humidity", "MONTH", "DATE", "hum_chart_month", false);
+      add_graph("humidity", "Humidity", "YEAR", "MONTH", "hum_chart_year", false);
 
-		add_graph("brightness", "Brightness", "DAY", "HOUR", "br_chart_day", true);
-		add_graph("brightness", "Brightness", "MONTH", "DATE", "br_chart_month", false);
-		add_graph("brightness", "Brightness", "YEAR", "MONTH", "br_chart_year", false);
+      add_graph("brightness", "Brightness", "DAY", "HOUR", "br_chart_day", true);
+      add_graph("brightness", "Brightness", "MONTH", "DATE", "br_chart_month", false);
+      add_graph("brightness", "Brightness", "YEAR", "MONTH", "br_chart_year", false);
 
-		add_graph("led_brightness", "LED Brightness", "DAY", "HOUR", "led_br_chart_day", true);
-		add_graph("led_brightness", "LED Brightness", "MONTH", "DATE", "led_br_chart_month", false);
-		add_graph("led_brightness", "LED Brightness", "YEAR", "MONTH", "led_br_chart_year", false);
+      add_graph("led_brightness", "LED Brightness", "DAY", "HOUR", "led_br_chart_day", true);
+      add_graph("led_brightness", "LED Brightness", "MONTH", "DATE", "led_br_chart_month", false);
+      add_graph("led_brightness", "LED Brightness", "YEAR", "MONTH", "led_br_chart_year", false);
    ?>
 
    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
