@@ -9,239 +9,227 @@ $dbname = "@ETS_DB_NAME@";
 $conn = new mysqli($servername, $username, $password, $dbname);
 // Check connection
 if ($conn->connect_error) {
-   die("Connection failed: " . $conn->connect_error);
+	die("Connection failed: " . $conn->connect_error);
 }
 ?>
 
 <html>
 <head>
-   <meta charset="utf-8">
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-   <title>ESP Ticker server</title>
+	<title>ESP Ticker server</title>
 
-   <!-- Bootstrap -->
-   <link href="css/bootstrap.min.css" rel="stylesheet">
+	<!-- Bootstrap -->
+	<link href="css/bootstrap.min.css" rel="stylesheet">
 
-   <!-- CO2 -->
-   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-   <?php
-      function add_graph($reading, $title, $interval, $group_by, $element, $skip_groupby) {
-         echo "<!-- CO2 - " . $interval . " -->\n";
-         echo "<script type=\"text/javascript\">\n";
-         echo "google.charts.load('current', {'packages':['line']});\n";
-         echo "google.charts.setOnLoadCallback(drawChart);\n";
-         echo "\n";
-         echo "function drawChart() {\n";
-         echo "   var data = new google.visualization.DataTable();\n";
-         echo "   data.addColumn('datetime', 'Time');\n";
-         echo "   data.addColumn('number', '" . $title . "');\n";
+	<?php
+		//function add_graph($reading, $title, $interval, $group_by, $element, $skip_groupby) {
+		function add_graph($reading, $title, $first_interval, $second_interval, $third_interval, $element) {
+			echo "<!-- " . $title . " - " . $third_interval . " -->\n";
+			echo "<script type=\"text/javascript\">\n";
+			echo "google.charts.load('current', {'packages':['line']});\n";
+			echo "google.charts.setOnLoadCallback(drawChart);\n";
+			echo "\n";
+			echo "function drawChart() {\n";
+			echo "	var data = new google.visualization.DataTable();\n";
+			echo "	data.addColumn('datetime', 'Time');\n";
+			echo "	data.addColumn('number', '" . $title . "');\n";
 
-         echo "   data.addRows([\n";
-         $sql = "SELECT reading_stamp, ";
-         if ($skip_groupby == false) {
-            $sql = $sql . "AVG(" . $reading .") AS " . $reading;
-         } else {
-            $sql = $sql . $reading;
-         }
-         $sql = $sql . " FROM readings WHERE reading_stamp > DATE_SUB(NOW(), INTERVAL 1 " . $interval . ")";
-         if ($skip_groupby == false) {
-            $sql = $sql . "GROUP BY " . $group_by . "(reading_stamp)";
-         }
-         echo "<!-- " . $sql . " -- >\n";
-         $result = $GLOBALS['conn']->query($sql);
+			echo "	data.addRows([\n";
+$sql = <<<EOT
+SELECT reading_stamp, $first_interval(reading_stamp) as first, $second_interval(reading_stamp) as second, avg($reading) as $reading
+FROM readings
+WHERE reading_stamp > DATE_SUB(NOW(), INTERVAL 1 $third_interval)
+GROUP BY first, second
+ORDER BY reading_stamp;
+EOT;
+			echo "/* \n" . $sql . "\n*/\n";
+			$result = $GLOBALS['conn']->query($sql);
 
-         if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-               echo "      [new Date('" . $row["reading_stamp"] . "'), " . $row[$reading] . "],\n";
-            }
-         } else {
-            echo "      [new Date('0'), 0]\n";
-         }
-         echo "   ]);\n";
+			if ($result->num_rows > 0) {
+				while($row = $result->fetch_assoc()) {
+					echo "		[new Date('" . $row["reading_stamp"] . "'), " . $row[$reading] . "],\n";
+				}
+			} else {
+				echo "		[new Date('0'), 0]\n";
+			}
+			echo "	]);\n";
 
-         echo "   var options = {\n";
-         echo "      title: '". $title . " Values',\n";
-         echo "      titlePosition: 'in',\n";
-         echo "      curveType: 'function',\n";
-         echo "      legend: { position: 'bottom' },\n";
-         echo "      tooltip: {trigger: 'selection'},\n";
-         echo "      pointsVisible: false,\n";
-         echo "   };\n";
+			echo "	var options = {\n";
+			echo "		title: '". $title . " Values',\n";
+			echo "		titlePosition: 'in',\n";
+			echo "		curveType: 'function',\n";
+			echo "		legend: { position: 'bottom' },\n";
+			echo "		tooltip: {trigger: 'selection'},\n";
+			echo "		pointsVisible: false,\n";
+			echo "	};\n";
 
-         echo "   var chart = new google.charts.Line(document.getElementById('" . $element . "'));\n";
+			echo "	var chart = new google.charts.Line(document.getElementById('" . $element . "'));\n";
 
-         echo "   chart.draw(data, options);\n";
-         echo "}\n";
-         echo "</script>\n";
-      }
+			echo "	chart.draw(data, options);\n";
+			echo "}\n";
+			echo "</script>\n";
+		}
 
-      add_graph("co2", "CO2", "DAY", "HOUR", "co2_chart_day", true);
-      add_graph("co2", "CO2", "MONTH", "DATE", "co2_chart_month", false);
-      add_graph("co2", "CO2", "YEAR", "MONTH", "co2_chart_year", false);
+		function add_reading($reading_name, $graph_prefix) {
+			add_graph($reading_name, $reading_name, "HOUR", "MINUTE", "DAY", $graph_prefix . "_chart_day");
+			add_graph($reading_name, $reading_name, "DATE", "HOUR", "MONTH", $graph_prefix . "_chart_month");
+			add_graph($reading_name, $reading_name, "MONTH", "DAY", "YEAR", $graph_prefix . "_chart_year");
+		}
+		add_reading("co2", "co2");
+		add_reading("temperature", "temp");
+		add_reading("humidity", "hum");
+		add_reading("brightness", "br");
+		add_reading("led_brightness", "led_br");
+	?>
 
-      add_graph("temperature", "Temperature", "DAY", "HOUR", "temp_chart_day", true);
-      add_graph("temperature", "Temperature", "MONTH", "DATE", "temp_chart_month", false);
-      add_graph("temperature", "Temperature", "YEAR", "MONTH", "temp_chart_year", false);
-
-      add_graph("humidity", "Humidity", "DAY", "HOUR", "hum_chart_day", true);
-      add_graph("humidity", "Humidity", "MONTH", "DATE", "hum_chart_month", false);
-      add_graph("humidity", "Humidity", "YEAR", "MONTH", "hum_chart_year", false);
-
-      add_graph("brightness", "Brightness", "DAY", "HOUR", "br_chart_day", true);
-      add_graph("brightness", "Brightness", "MONTH", "DATE", "br_chart_month", false);
-      add_graph("brightness", "Brightness", "YEAR", "MONTH", "br_chart_year", false);
-
-      add_graph("led_brightness", "LED Brightness", "DAY", "HOUR", "led_br_chart_day", true);
-      add_graph("led_brightness", "LED Brightness", "MONTH", "DATE", "led_br_chart_month", false);
-      add_graph("led_brightness", "LED Brightness", "YEAR", "MONTH", "led_br_chart_year", false);
-   ?>
-
-   <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-   <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-   <![endif]-->
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+		<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+		<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
 </head>
 <body>
-   <div class="container-fluid">
-      <div class="page-header">
-         <h1>ESP Ticker Sensor Readings</h1>
-      </div>
+	<div class="container-fluid">
+		<div class="page-header">
+			<h1>ESP Ticker Sensor Readings</h1>
+		</div>
 
-      <h4>CO2</h4>
-      <p></p>
-      <div class="row">
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Day</div>
-               <div id="co2_chart_day" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Month</div>
-               <div id="co2_chart_month" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Year</div>
-               <div id="co2_chart_year" class="panel-body"></div>
-            </div>
-         </div>
-      </div>
+		<h4>CO2</h4>
+		<p></p>
+		<div class="row">
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Day</div>
+					<div id="co2_chart_day" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Month</div>
+					<div id="co2_chart_month" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Year</div>
+					<div id="co2_chart_year" class="panel-body"></div>
+				</div>
+			</div>
+		</div>
 
-      <h4>Temperature</h4>
-      <p></p>
-      <div class="row">
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Day</div>
-               <div id="temp_chart_day" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Month</div>
-               <div id="temp_chart_month" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Year</div>
-               <div id="temp_chart_year" class="panel-body"></div>
-            </div>
-         </div>
-      </div>
+		<h4>Temperature</h4>
+		<p></p>
+		<div class="row">
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Day</div>
+					<div id="temp_chart_day" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Month</div>
+					<div id="temp_chart_month" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Year</div>
+					<div id="temp_chart_year" class="panel-body"></div>
+				</div>
+			</div>
+		</div>
 
-      <h4>Humidity</h4>
-      <p></p>
-      <div class="row">
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Day</div>
-               <div id="hum_chart_day" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Month</div>
-               <div id="hum_chart_month" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Year</div>
-               <div id="hum_chart_year" class="panel-body"></div>
-            </div>
-         </div>
-      </div>
+		<h4>Humidity</h4>
+		<p></p>
+		<div class="row">
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Day</div>
+					<div id="hum_chart_day" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Month</div>
+					<div id="hum_chart_month" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Year</div>
+					<div id="hum_chart_year" class="panel-body"></div>
+				</div>
+			</div>
+		</div>
 
-      <h4>Brightness</h4>
-      <p></p>
-      <div class="row">
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Day</div>
-               <div id="br_chart_day" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Month</div>
-               <div id="br_chart_month" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Year</div>
-               <div id="br_chart_year" class="panel-body"></div>
-            </div>
-         </div>
-      </div>
+		<h4>Brightness</h4>
+		<p></p>
+		<div class="row">
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Day</div>
+					<div id="br_chart_day" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Month</div>
+					<div id="br_chart_month" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Year</div>
+					<div id="br_chart_year" class="panel-body"></div>
+				</div>
+			</div>
+		</div>
 
-      <h4>LED Brightness</h4>
-      <p></p>
-      <div class="row">
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Day</div>
-               <div id="led_br_chart_day" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Month</div>
-               <div id="led_br_chart_month" class="panel-body"></div>
-            </div>
-         </div>
-         <div class="col-md-4">
-            <div class="panel panel-default">
-               <div class="panel-heading">Year</div>
-               <div id="led_br_chart_year" class="panel-body"></div>
-            </div>
-         </div>
-      </div>
-   </div>
+		<h4>LED Brightness</h4>
+		<p></p>
+		<div class="row">
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Day</div>
+					<div id="led_br_chart_day" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Month</div>
+					<div id="led_br_chart_month" class="panel-body"></div>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-heading">Year</div>
+					<div id="led_br_chart_year" class="panel-body"></div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
-   <!-- Latest compiled and minified CSS -->
-   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
-   <!-- Optional theme -->
-   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
-   <!-- Latest compiled and minified JavaScript -->
-   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </body>
 </html>
 
 <?php
-   $conn->close();
+	$conn->close();
 ?>
